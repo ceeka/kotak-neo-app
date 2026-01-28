@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kotak Neo Pro V27.0</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; --green: #16a34a; --red: #dc2626; --gray: #64748b; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        
+        .search-wrap { position: relative; display: flex; gap: 8px; align-items: center; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .result-item { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .result-item:hover { background: #eff6ff; color: var(--primary); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal { background: white; width: 600px; max-height: 80vh; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .modal-header { padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-weight: bold; background: #f8fafc; }
+        .modal-body { padding: 15px; overflow-y: auto; flex: 1; }
+        
+        .chain-row { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 10px; margin-bottom: 8px; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+        .chain-col { display: flex; align-items: center; gap: 5px; font-size: 0.9rem; }
+        .strike-badge { background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-weight: bold; text-align: center; font-size: 0.85rem; }
+        .ce-box { color: var(--green); } .pe-box { color: var(--red); }
+
+        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .login-card { width: 360px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .app-layout { display: none; flex: 1; flex-direction: column; height: 100%; }
+        
+        header { background: #1e293b; color: white; height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .user-pill { background: #334155; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; }
+        
+        .grid-container { display: grid; grid-template-columns: 380px 1fr; gap: 24px; padding: 24px; flex: 1; overflow: hidden; }
+        .panel { background: white; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .panel-head { padding: 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #475569; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .panel-body { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        
+        label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 4px; display: block; text-transform: uppercase; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; box-sizing: border-box; }
+        input:focus { outline: none; border-color: var(--primary); ring: 2px solid #bfdbfe; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
+        .btn-buy { background: var(--green); color: white; } .btn-buy:hover { background: #15803d; }
+        .btn-sell { background: var(--red); color: white; } .btn-sell:hover { background: #b91c1c; }
+        .btn-primary { background: var(--primary); color: white; }
+
+        .icon-btn {
+            background: white; border: 1px solid #cbd5e1; cursor: pointer; 
+            padding: 8px; border-radius: 6px; color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .icon-btn:hover { background: #eff6ff; border-color: var(--primary); }
+        .icon-btn svg { width: 20px; height: 20px; stroke-width: 2; stroke: currentColor; fill: none; }
+
+        .tabs { display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+        .tab { padding: 12px 24px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; }
+        .tab.active { background: white; color: var(--primary); border-bottom-color: var(--primary); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; position: sticky; top: 0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        .pnl-plus { color: var(--green); font-weight: 700; } .pnl-minus { color: var(--red); font-weight: 700; }
+        .hidden { display: none; }
+        .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .st-open { background: #dcfce7; color: #166534; }
+        .st-closed { background: #f1f5f9; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="login-overlay">
+        <div class="login-card">
+            <h2 style="text-align:center; color:var(--primary); margin-top:0;">Kotak Neo V26</h2>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div><label>Consumer Key</label><input type="text" id="consumer_key"></div>
+                <div><label>Mobile Number</label><input type="text" id="mobile_number"></div>
+                <div><label>Client Code (UCC)</label><input type="text" id="client_code"></div>
+                <div><label>MPIN</label><input type="password" id="mpin" maxlength="6"></div>
+                <div><label>TOTP Code</label><input type="text" id="totp" maxlength="6"></div>
+                <button onclick="login()" id="loginBtn" class="btn btn-primary" style="margin-top:10px;">Login</button>
+                <p id="loginStatus" style="text-align:center; font-size:0.8rem; color:var(--red); margin:0; min-height:20px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="chainModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="chainTitle">Option Chain</span>
+                <button onclick="document.getElementById('chainModal').style.display='none'" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div class="modal-body" id="chainBody">
+                <p style="text-align:center; color:#64748b;">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="app-layout">
+        <header>
+            <div style="font-weight:800; font-size:1.25rem;">PRO TERMINAL</div>
+            <div class="user-pill">
+                <span id="userName" style="color:#cbd5e1;">--</span>
+                <span style="color:#475569; margin:0 10px;">|</span>
+                <span style="margin-right:5px; color:#cbd5e1;">P&L:</span>
+                <span id="headerPnl" style="font-weight:bold; font-family:monospace; font-size:1rem; margin-right:15px; color:#cbd5e1;">₹ 0.00</span>
+                <span style="margin-right:5px; color:#cbd5e1;">Funds:</span>
+                <span id="userFunds" style="color:#4ade80; font-weight:bold; font-family:monospace; font-size:1rem;">₹ 0.00</span>
+                <button onclick="logout()" style="background:none; border:none; color:#f87171; cursor:pointer; font-weight:bold; margin-left:15px;">Logout</button>
+            </div>
+        </header>
+
+        <div class="grid-container">
+            <div class="panel">
+                <div class="panel-head">
+                    <span>ORDER ENTRY</span>
+                    <span id="liveLTP" style="font-size:0.8rem; color:var(--primary); background:#eff6ff; padding:2px 8px; border-radius:4px;">LTP: ₹ 0.00</span>
+                </div>
+                <div class="panel-body">
+                    <div class="search-wrap">
+                        <div style="flex:1; position:relative;">
+                            <input type="text" id="ord_symbol" placeholder="Search (e.g. NIFTY)" onkeyup="searchSymbol()" autocomplete="off">
+                            <div id="searchResults" class="search-results"></div>
+                        </div>
+                        <button class="icon-btn" onclick="fetchChain()" title="Get Option Chain">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div style="display:flex; gap:12px;">
+                        <div style="flex:1;"><label>Lot Size</label><input type="number" id="ord_lotsize" value="0" readonly style="background:#f1f5f9; color:#94a3b8;"></div>
+                        <div style="flex:1;"><label>Multiplier</label><input type="number" id="ord_mult" value="1" min="1" oninput="calcEst()"></div>
+                    </div>
+
+                    <div style="display:flex; gap:12px;">
+                        <div style="flex:1;">
+                            <label>Product</label>
+                            <select id="ord_product">
+                                <option value="NRML">NRML (Overnight)</option>
+                                <option value="MIS">MIS (Intraday)</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Slice Limit (Qty)</label>
+                            <input type="number" id="ord_slice" value="0" placeholder="0 = Off">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Price</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" id="ord_price" placeholder="Limit" oninput="calcEst()">
+                            <label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#475569;">
+                                <input type="checkbox" id="ord_mkt" onchange="toggleMkt()" style="width:auto; margin-right:6px;"> MKT
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px dashed #cbd5e1; text-align:center;">
+                        <label style="margin:0;">Est. Amount</label>
+                        <div id="est_val" style="font-size:1.25rem; font-weight:800; color:var(--primary); margin-top:4px;">₹ 0.00</div>
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Qty: <span id="total_qty">0</span></div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; margin-top:auto;">
+                        <button class="btn btn-buy" onclick="placeOrder('B')">BUY</button>
+                        <button class="btn btn-sell" onclick="placeOrder('S')">SELL</button>
+                    </div>
+                    <div id="ordStatus" style="text-align:center; font-size:0.8rem; margin-top:5px; height:20px;"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('pos')">Positions</div>
+                    <div class="tab" onclick="showTab('ord')">Order Book</div>
+                </div>
+                <div style="flex:1; overflow:auto; padding-bottom:10px;">
+                    <div id="tab_pos">
+                        <table><thead><tr><th>Symbol</th><th>Status</th><th>Net Qty</th><th>Avg Price</th><th>LTP</th><th>P&L</th></tr></thead><tbody id="posBody"></tbody></table>
+                    </div>
+                    <div id="tab_ord" class="hidden">
+                        <table><thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead><tbody id="ordBody"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://localhost:8080/api";
+        const FIELDS = ['consumer_key', 'mobile_number', 'client_code', 'mpin'];
+        let searchTimer = null;
+        let currentLTP = 0; 
+        let globalToken = ""; 
+
+        FIELDS.forEach(id => {
+            if(localStorage.getItem(id)) document.getElementById(id).value = localStorage.getItem(id);
+            document.getElementById(id).addEventListener('input', e => localStorage.setItem(id, e.target.value));
+        });
+
+        async function login() {
+            const btn=document.getElementById('loginBtn'); const stat=document.getElementById('loginStatus');
+            const pl={}; FIELDS.forEach(k => pl[k]=document.getElementById(k).value); pl['totp']=document.getElementById('totp').value;
+            btn.disabled=true; btn.innerText="Connecting..."; stat.innerText="";
+            try {
+                const res = await fetch(`${API}/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(pl)});
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('loginScreen').style.display='none';
+                    document.getElementById('app').style.display='flex';
+                    document.getElementById('userName').innerText = data.user.name;
+                    document.getElementById('userFunds').innerText = "₹ " + data.user.funds;
+                    setInterval(refreshData, 5000); refreshData();
+                } else throw new Error(data.error);
+            } catch(e) { stat.innerText = e.message; }
+            finally { btn.disabled=false; btn.innerText="Login"; }
+        }
+
+        async function logout() { await fetch(`${API}/logout`, {method:'POST'}); location.reload(); }
+
+        function searchSymbol() {
+            clearTimeout(searchTimer); const q = document.getElementById('ord_symbol').value; const box = document.getElementById('searchResults');
+            if(q.length < 3) { box.style.display='none'; return; }
+            searchTimer = setTimeout(async () => {
+                const res = await fetch(`${API}/search?q=${q}`); const data = await res.json();
+                box.innerHTML = '';
+                if(data.length > 0) {
+                    box.style.display = 'block';
+                    data.forEach(i => {
+                        const d = document.createElement('div'); d.className='result-item';
+                        d.innerHTML = `<span>${i.pTrdSymbol}</span><span style="color:#94a3b8">Lot: ${i.lLotSize}</span>`;
+                        d.onclick = () => selectSymbol(i);
+                        box.appendChild(d);
+                    });
+                } else box.style.display='none';
+            }, 300);
+        }
+
+        async function selectSymbol(item) {
+            document.getElementById('ord_symbol').value = item.pTrdSymbol;
+            document.getElementById('ord_lotsize').value = item.lLotSize;
+            document.getElementById('searchResults').style.display='none';
+            globalToken = item.token; 
+            
+            document.getElementById('liveLTP').innerText = "Fetching...";
+            try {
+                const res = await fetch(`${API}/get_ltp?token=${item.token}`);
+                const data = await res.json();
+                if(data.success && data.ltp > 0) {
+                    currentLTP = data.ltp;
+                    document.getElementById('liveLTP').innerText = "LTP: ₹ " + currentLTP;
+                } else {
+                    currentLTP = 0;
+                    document.getElementById('liveLTP').innerText = "LTP: Error";
+                }
+            } catch(e) { currentLTP=0; }
+            calcEst();
+        }
+
+        // --- INTELLIGENT INDEX FINDER (V27 Fix) ---
+        async function fetchChain() {
+            let sym = document.getElementById('ord_symbol').value.toUpperCase();
+            if(!sym) { alert("Please type a symbol (e.g. NIFTY)"); return; }
+
+            const modalBody = document.getElementById('chainBody');
+            document.getElementById('chainModal').style.display = 'flex';
+            modalBody.innerHTML = `<p style="text-align:center;color:#64748b;">Finding Index...</p>`;
+
+            // 1. CLEAN SYMBOL (Remove numbers/options stuff)
+            // e.g. "NIFTY26FEB..." -> "NIFTY"
+            const baseMatch = sym.match(/^[A-Z]+/);
+            let base = baseMatch ? baseMatch[0] : sym;
+            
+            // Map common inputs to official Index names
+            if(base.includes("BANK")) base = "BANKNIFTY"; // Often "BANKNIFTY" in API
+            if(base === "NIFTY") base = "NIFTY 50";       // Try exact match first
+            
+            // 2. SEARCH FOR INDEX TOKEN
+            let indexToken = "";
+            let indexName = base;
+            
+            try {
+                // First try: "NIFTY 50" (Standard)
+                let sRes = await fetch(`${API}/search?q=${base}`);
+                let sData = await sRes.json();
+                
+                // If "NIFTY 50" failed, try just "NIFTY"
+                if(sData.length === 0 && base === "NIFTY 50") {
+                    base = "NIFTY";
+                    sRes = await fetch(`${API}/search?q=${base}`);
+                    sData = await sRes.json();
+                }
+
+                // Filter for Indices (Lot Size = 0 usually implies Index/Stock, but Index usually top result)
+                // We pick the first one that looks like an Index
+                if(sData.length > 0) {
+                    // Prefer exact match or one with '50'
+                    const idx = sData.find(i => i.pTrdSymbol === "NIFTY 50") || sData[0];
+                    indexToken = idx.token;
+                    indexName = idx.pTrdSymbol;
+                } else {
+                    modalBody.innerHTML = `<p style="text-align:center;color:var(--red);">Index not found for ${base}</p>`;
+                    return;
+                }
+
+                // 3. FETCH INDEX SPOT PRICE
+                const lRes = await fetch(`${API}/get_ltp?token=${indexToken}`);
+                const lData = await lRes.json();
+                
+                if(!lData.success || lData.ltp === 0) {
+                    modalBody.innerHTML = `<p style="text-align:center;color:var(--red);">No Spot Price for ${indexName}</p>`;
+                    return;
+                }
+                
+                const spotPrice = lData.ltp;
+
+                // 4. FETCH CHAIN WITH SPOT PRICE
+                // Note: For option chain API, use the SIMPLE name "NIFTY" or "BANKNIFTY" not "NIFTY 50"
+                let chainSym = "NIFTY";
+                if(indexName.includes("BANK")) chainSym = "BANKNIFTY";
+                else if(indexName.includes("FIN")) chainSym = "FINNIFTY";
+                
+                const res = await fetch(`${API}/option_chain?symbol=${chainSym}&ltp=${spotPrice}`);
+                const json = await res.json();
+                
+                if(json.success && json.data.length > 0) {
+                    let html = '';
+                    const atm = json.atm;
+                    const data = json.data;
+                    const strikes = {};
+                    data.forEach(x => {
+                        if(!strikes[x.dStrikePrice]) strikes[x.dStrikePrice] = {ce: null, pe: null};
+                        if(x.pOptionType === 'CE') strikes[x.dStrikePrice].ce = x;
+                        else strikes[x.dStrikePrice].pe = x;
+                    });
+                    
+                    const sortedStrikes = Object.keys(strikes).sort((a,b) => parseFloat(a)-parseFloat(b));
+                    
+                    sortedStrikes.forEach(k => {
+                        const s = strikes[k];
+                        const ce = s.ce; const pe = s.pe;
+                        const isAtm = parseFloat(k) === atm;
+                        const style = isAtm ? "background:#fefce8;" : "";
+                        
+                        html += `<div class="chain-row" style="${style}">
+                            <div class="chain-col ce-box">
+                                <input type="checkbox" ${ce ? '' : 'disabled'} onclick="selectChainOpt('${ce?ce.pTrdSymbol:''}', ${ce?ce.lLotSize:0}, '${ce?ce.token:''}')"> 
+                                <span>${ce ? ce.pTrdSymbol : '-'}</span>
+                            </div>
+                            <div class="strike-badge">${k}</div>
+                            <div class="chain-col pe-box">
+                                <input type="checkbox" ${pe ? '' : 'disabled'} onclick="selectChainOpt('${pe?pe.pTrdSymbol:''}', ${pe?pe.lLotSize:0}, '${pe?pe.token:''}')"> 
+                                <span>${pe ? pe.pTrdSymbol : '-'}</span>
+                            </div>
+                        </div>`;
+                    });
+                    modalBody.innerHTML = html;
+                    document.getElementById('chainTitle').innerText = `Chain (${json.expiry}) | Spot: ${spotPrice}`;
+                } else {
+                    modalBody.innerHTML = `<p style="text-align:center;color:#64748b;">No Chain Data found for ${chainSym}</p>`;
+                }
+            } catch(e) { modalBody.innerHTML = "Error: " + e; }
+        }
+
+        function selectChainOpt(sym, lot, tok) {
+            if(!sym) return;
+            document.getElementById('ord_symbol').value = sym;
+            document.getElementById('ord_lotsize').value = lot;
+            globalToken = tok; 
+            document.getElementById('chainModal').style.display='none';
+            selectSymbol({pTrdSymbol: sym, lLotSize: lot, token: tok}); 
+        }
+
+        function toggleMkt() { const m=document.getElementById('ord_mkt').checked; document.getElementById('ord_price').disabled=m; if(m) document.getElementById('ord_price').value=""; calcEst(); }
+        function calcEst() {
+            const qty = (parseFloat(document.getElementById('ord_lotsize').value)||0) * (parseFloat(document.getElementById('ord_mult').value)||0);
+            const isMkt = document.getElementById('ord_mkt').checked;
+            const inputPrc = parseFloat(document.getElementById('ord_price').value)||0;
+            const prc = isMkt ? currentLTP : (inputPrc > 0 ? inputPrc : currentLTP);
+            document.getElementById('total_qty').innerText = qty; document.getElementById('est_val').innerText = "₹ " + (qty*prc).toFixed(2);
+        }
+
+        async function placeOrder(side) {
+            const msg=document.getElementById('ordStatus'); 
+            const sym = document.getElementById('ord_symbol').value;
+            if(!sym) { msg.innerText = "Select a Symbol"; msg.style.color="red"; return; }
+            msg.innerText="Sending...";
+            const pl = { 
+                symbol: sym, 
+                qty: document.getElementById('total_qty').innerText, 
+                price: document.getElementById('ord_price').value, 
+                is_market: document.getElementById('ord_mkt').checked, 
+                product: document.getElementById('ord_product').value,
+                slice_size: document.getElementById('ord_slice').value,
+                side: side==='B'?'buy':'sell' 
+            };
+            try {
+                const res = await fetch(`${API}/place_order`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(pl)});
+                const d = await res.json();
+                if (d.success) {
+                    if (d.is_sliced) {
+                         msg.innerText = `✅ Sliced: ${d.data.length} orders sent`;
+                         msg.style.color = "green";
+                    } else if (d.data.length > 0) {
+                        const o = d.data[0];
+                        if (o.nOrdNo) { msg.innerText = "✅ Placed: " + o.nOrdNo; msg.style.color = "green"; } 
+                        else { msg.innerText = "❌ " + (o.errMsg || "Rejected"); msg.style.color = "red"; }
+                    }
+                } else { msg.innerText = "❌ " + d.error; msg.style.color = "red"; }
+                refreshData();
+            } catch(e) { msg.innerText = "Error: " + e; }
+        }
+
+        function showTab(t) { document.getElementById('tab_pos').className = t==='pos'?'':'hidden'; document.getElementById('tab_ord').className = t==='ord'?'':'hidden'; document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active')); event.target.classList.add('active'); }
+
+        function getVal(obj, keys) {
+            for(let k of keys) { if(obj[k] !== undefined) return obj[k]; }
+            return 0;
+        }
+        function cleanFloat(val) {
+            if (!val) return 0;
+            const strVal = String(val).replace(/,/g, '');
+            return parseFloat(strVal) || 0;
+        }
+        
+        async function refreshData() {
+            try {
+                const res = await fetch(`${API}/data`); const d = await res.json(); if(!d.success) return;
+                if(d.funds) document.getElementById('userFunds').innerText = "₹ " + d.funds;
+                const pBody = document.getElementById('posBody');
+                let globalPnl = 0;
+                if(d.positions && d.positions.length > 0) {
+                    let h=''; 
+                    d.positions.forEach(p => { 
+                        const sym = getVal(p, ['trdSym', 'TrdSym', 'tradingSymbol']);
+                        const buyQty = cleanFloat(getVal(p, ['flBuyQty', 'FlBuyQty']));
+                        const sellQty = cleanFloat(getVal(p, ['flSellQty', 'FlSellQty']));
+                        const netQty = buyQty - sellQty;
+                        const buyAmt = cleanFloat(getVal(p, ['buyAmt', 'BuyAmt']));
+                        const sellAmt = cleanFloat(getVal(p, ['sellAmt', 'SellAmt']));
+                        let avg = 0;
+                        if(netQty > 0) avg = buyAmt / buyQty;
+                        else if(netQty < 0) avg = sellAmt / sellQty;
+                        const ltp = cleanFloat(p.fetchedLTP);
+                        let pnl = 0;
+                        let statusClass = 'st-open';
+                        let statusText = 'OPEN';
+                        if(netQty === 0) {
+                            pnl = sellAmt - buyAmt;
+                            statusClass = 'st-closed'; statusText = 'CLOSED';
+                        } else {
+                            if(ltp > 0) pnl = (ltp * netQty) - (buyAmt - sellAmt);
+                            else pnl = sellAmt - buyAmt;
+                        }
+                        globalPnl += pnl;
+                        const pnlClass = pnl >= 0 ? 'pnl-plus' : 'pnl-minus';
+                        const ltpDisplay = ltp > 0 ? ltp : '0.00';
+                        h+=`<tr>
+                            <td>${sym}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td>${netQty}</td>
+                            <td>${avg.toFixed(2)}</td>
+                            <td>${ltpDisplay}</td>
+                            <td class="${pnlClass}">${pnl.toFixed(2)}</td>
+                        </tr>`; 
+                    });
+                    pBody.innerHTML = h;
+                } else { pBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No Positions</td></tr>'; }
+                document.getElementById('headerPnl').innerText = "₹ " + globalPnl.toFixed(2);
+                document.getElementById('headerPnl').style.color = globalPnl >= 0 ? "var(--green)" : "var(--red)";
+                const oBody = document.getElementById('ordBody');
+                if(d.orders && d.orders.data) {
+                    let h=''; d.orders.data.sort((a,b)=>(getVal(b,['ordDtTm','OrdDtTm'])||"").localeCompare(getVal(a,['ordDtTm','OrdDtTm'])||"")).forEach(o => { 
+                        const sym = getVal(o, ['trdSym', 'TrdSym']);
+                        const time = getVal(o, ['ordDtTm', 'OrdDtTm']).split(' ')[1] || '--';
+                        const side = getVal(o, ['trnsTp', 'TrnsTp']);
+                        const qty = getVal(o, ['qty', 'Qty']);
+                        const prc = getVal(o, ['prc', 'Prc']);
+                        const st = getVal(o, ['ordSt', 'OrdSt']);
+                        h+=`<tr><td>${time}</td><td>${sym}</td><td style="color:${side==='B'?'var(--green)':'var(--red)'}">${side}</td><td>${qty}</td><td>${prc}</td><td>${st}</td></tr>`; 
+                    });
+                    oBody.innerHTML = h || '<tr><td colspan="6" style="text-align:center;">No Orders</td></tr>';
+                }
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>

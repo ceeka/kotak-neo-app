@@ -1,0 +1,6 @@
+flask
+flask-cors
+neo_api_client
+pandas
+gunicorn
+requests
