@@ -1,6 +1,6 @@
 flask
 flask-cors
-neo_api_client
 pandas
 gunicorn
 requests
+git+https://github.com/kotaksecurities/neo-api-client.git#egg=neo_api_client
