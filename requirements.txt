@@ -3,4 +3,4 @@ flask-cors
 pandas
 gunicorn
 requests
-git+https://github.com/kotaksecurities/neo-api-client.git#egg=neo_api_client
+git+https://github.com/Kotak-Neo/kotak-neo-api.git#egg=neo_api_client
